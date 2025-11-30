@@ -1,46 +1,56 @@
+@file:OptIn(ExperimentalTime::class)
+
 package org.chats
 
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import org.chats.dto.ChatDto
+import org.chats.dto.MessageDto
 import org.chats.ui.Conversations
+import org.chats.ui.Theme
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-@ExperimentalTime
+private val chats = listOf(
+    ChatDto("12345", "foo", Clock.System.now(), "ho"),
+    ChatDto("67890", "bar", Clock.System.now(),
+        "Lorem ipsum dolor sit amet consectetur adipiscing elit quisque faucibus ex sapien vitae pellentesque sem.")
+)
+
+private val messages = mapOf(
+    "12345" to listOf(
+        MessageDto(
+            "", "foo", """
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
+            sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
+            ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore 
+            eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt 
+            mollit anim id est laborum.
+        """.trimIndent().replace("\n", ""), Clock.System.now()
+        ),
+        MessageDto("", "foo", "hey", Clock.System.now()),
+        MessageDto(id = "", from = "kite", text = "lol", receivedAt = Clock.System.now()),
+        MessageDto("", "foo", "yeah", Clock.System.now()),
+    ),
+    "67890" to listOf(
+        MessageDto("", "bar", "let's go!", Clock.System.now()),
+    )
+)
+
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
-        Surface {
-            Conversations(listOf(
-                ChatDto("12345", "foo", Clock.System.now(), "hey"),
-                ChatDto("12345", "bar", Clock.System.now(), "boo")
-            ), onSelect = {})
+    Theme {
+        Scaffold { padding ->
+            Conversations(
+                chats = chats,
+                messages = messages,
+                modifier = Modifier.padding(padding)
+            )
         }
-//        var showContent by remember { mutableStateOf(false) }
-//        Column(
-//            modifier = Modifier
-//                .background(MaterialTheme.colorScheme.primaryContainer)
-//                .safeContentPadding()
-//                .fillMaxSize(),
-//            horizontalAlignment = Alignment.CenterHorizontally,
-//        ) {
-//            Button(onClick = { showContent = !showContent }) {
-//                Text("Click me!")
-//            }
-//            AnimatedVisibility(showContent) {
-//                val greeting = remember { Greeting().greet() }
-//                Column(
-//                    modifier = Modifier.fillMaxWidth(),
-//                    horizontalAlignment = Alignment.CenterHorizontally,
-//                ) {
-//                    Image(painterResource(Res.drawable.compose_multiplatform), null)
-//                    Text("Compose: $greeting")
-//                }
-//            }
-//        }
     }
 }
