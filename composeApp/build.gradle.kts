@@ -35,6 +35,8 @@ kotlin {
             implementation("org.jetbrains.compose.material3.adaptive:adaptive-navigation:1.2.0")
             implementation("org.jetbrains.compose.ui:ui-backhandler:1.9.1")
             implementation(libs.kotlinx.datetime)
+            implementation(libs.material3)
+            implementation("org.jetbrains.compose.material:material-icons-core:1.7.3")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

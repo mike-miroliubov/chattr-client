@@ -15,13 +15,13 @@ import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 private val chats = listOf(
-    ChatDto("12345", "foo", Clock.System.now(), "ho"),
-    ChatDto("67890", "bar", Clock.System.now(),
+    ChatDto("foo#kite", "foo", Clock.System.now(), "ho"),
+    ChatDto("bar#kite", "bar", Clock.System.now(),
         "Lorem ipsum dolor sit amet consectetur adipiscing elit quisque faucibus ex sapien vitae pellentesque sem.")
 )
 
 private val messages = mapOf(
-    "12345" to listOf(
+    "foo#kite" to listOf(
         MessageDto(
             "", "foo", """
             Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
@@ -36,7 +36,7 @@ private val messages = mapOf(
         MessageDto(id = "", from = "kite", text = "lol", receivedAt = Clock.System.now()),
         MessageDto("", "foo", "yeah", Clock.System.now()),
     ),
-    "67890" to listOf(
+    "bar#kite" to listOf(
         MessageDto("", "bar", "let's go!", Clock.System.now()),
     )
 )

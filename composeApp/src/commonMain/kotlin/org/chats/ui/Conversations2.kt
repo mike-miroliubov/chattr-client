@@ -2,7 +2,9 @@
 
 package org.chats.ui
 
-import androidx.compose.animation.*
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -14,6 +16,9 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.*
@@ -31,11 +36,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.launch
-import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.chats.dto.ChatDto
 import org.chats.dto.MessageDto
+import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 /*
@@ -130,6 +135,7 @@ sealed interface SelectionVisibilityState {
     ) : SelectionVisibilityState
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListContent(
     chats: List<ChatDto>,
@@ -138,91 +144,127 @@ fun ListContent(
     modifier: Modifier = Modifier,
     isDetailsVisible: Boolean,
 ) {
+    val (searchQuery, setSearchQuery) = rememberSaveable { mutableStateOf("") }
+    var filteredChats by rememberSaveable { mutableStateOf(chats) }
+    var expanded by rememberSaveable { mutableStateOf(false) }
+
     Row(modifier = Modifier.fillMaxSize()) {
-        Column(modifier = Modifier.fillMaxHeight()) {
-            LazyColumn(
-                modifier = modifier
-                    .then(
-                        when (selectionState) {
-                            SelectionVisibilityState.NoSelection -> Modifier
-                            is SelectionVisibilityState.ShowSelection -> Modifier.selectableGroup()
-                        }
-                    )
-                    .fillMaxHeight(),
+        Column(modifier = Modifier.weight(1f)) {
+            Row(modifier.padding(16.dp)
+                .fillMaxWidth()
             ) {
-                items(chats) { chat ->
-
-                    val interactionModifier = when (selectionState) {
-                        is SelectionVisibilityState.NoSelection -> {
-                            Modifier.clickable(
-                                onClick = { onChatClick(chat) }
-                            )
-                        }
-
-                        is SelectionVisibilityState.ShowSelection -> {
-                            Modifier.selectable(
-                                selected = chat.id == selectionState.selectedChatId,
-                                onClick = { onChatClick(chat) }
-                            )
-                        }
-                    }
-                    val containerColor = when (selectionState) {
-                        is SelectionVisibilityState.NoSelection -> MaterialTheme.colorScheme.surface
-                        is SelectionVisibilityState.ShowSelection ->
-                            if (chat.id == selectionState.selectedChatId) {
-                                MaterialTheme.colorScheme.surfaceTint
-                            } else {
-                                MaterialTheme.colorScheme.surface
-                            }
-                    }
-
-                    Card(
-                        colors = CardDefaults.cardColors(containerColor = containerColor),
-                        modifier = Modifier
-                            .then(interactionModifier)
-                            .fillMaxWidth(if (isDetailsVisible) 0.99f else 1f),
-                        shape = RoundedCornerShape(0.dp)
-                    ) {
-
-                        Column {
-                            Row(
-                                modifier = Modifier.padding(16.dp),
-                            ) {
-                                Avatar(
-                                    chat.fromUserId,
-                                    color = if (shouldShowSelection(
-                                            selectionState,
-                                            chat.id
-                                        )
-                                    ) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                                    textColor = if (shouldShowSelection(
-                                            selectionState,
-                                            chat.id
-                                        )
-                                    ) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
-                                )
-                                Spacer(modifier = Modifier.width(12.dp))
-
-                                Column(verticalArrangement = Arrangement.SpaceBetween) {
-                                    Text(text = chat.fromUserId, style = MaterialTheme.typography.titleMedium)
-                                    Text(
-                                        chat.lastMessageText,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis
-                                    )
-                                }
-                            }
-                            HorizontalDivider()
-                        }
-                    }
-                }
+                SearchField(
+                    query = searchQuery,
+                    onQueryChange = {
+                        setSearchQuery(it)
+                        filteredChats = listOf(
+                            ChatDto("example", "foo", Clock.System.now(),
+                                "This is a search result"),
+                        )
+                    },
+                    onSearch = {},
+                    onExpandedChange = {
+                        expanded = it
+                        println("Expanded: $it")
+                    },
+                    modifier = Modifier.weight(1f),
+                )
             }
+            HorizontalDivider()
+            SearchResults(modifier, selectionState, filteredChats, onChatClick, isDetailsVisible)
         }
         if (isDetailsVisible) {
             VerticalDivider(
-                modifier = Modifier.fillMaxHeight() // Makes the divider span the full height of the Row
+                modifier = Modifier.fillMaxHeight(), // Makes the divider span the full height of the Row
             )
+        }
+    }
+}
+
+@Composable
+private fun SearchResults(
+    modifier: Modifier,
+    selectionState: SelectionVisibilityState,
+    chats: List<ChatDto>,
+    onChatClick: (ChatDto) -> Unit,
+    isDetailsVisible: Boolean
+) {
+    LazyColumn(
+        modifier = modifier
+            .then(
+                when (selectionState) {
+                    SelectionVisibilityState.NoSelection -> Modifier
+                    is SelectionVisibilityState.ShowSelection -> Modifier.selectableGroup()
+                }
+            )
+            .fillMaxHeight(),
+    ) {
+        items(chats) { chat ->
+
+            val interactionModifier = when (selectionState) {
+                is SelectionVisibilityState.NoSelection -> {
+                    Modifier.clickable(
+                        onClick = { onChatClick(chat) }
+                    )
+                }
+
+                is SelectionVisibilityState.ShowSelection -> {
+                    Modifier.selectable(
+                        selected = chat.id == selectionState.selectedChatId,
+                        onClick = { onChatClick(chat) }
+                    )
+                }
+            }
+            val containerColor = when (selectionState) {
+                is SelectionVisibilityState.NoSelection -> MaterialTheme.colorScheme.surface
+                is SelectionVisibilityState.ShowSelection ->
+                    if (chat.id == selectionState.selectedChatId) {
+                        MaterialTheme.colorScheme.surfaceTint
+                    } else {
+                        MaterialTheme.colorScheme.surface
+                    }
+            }
+
+            Card(
+                colors = CardDefaults.cardColors(containerColor = containerColor),
+                modifier = Modifier
+                    .then(interactionModifier)
+                    .fillMaxWidth(if (isDetailsVisible) 0.99f else 1f),
+                shape = RoundedCornerShape(0.dp)
+            ) {
+
+                Column {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                    ) {
+                        Avatar(
+                            chat.fromUserId,
+                            color = if (shouldShowSelection(
+                                    selectionState,
+                                    chat.id
+                                )
+                            ) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+                            textColor = if (shouldShowSelection(
+                                    selectionState,
+                                    chat.id
+                                )
+                            ) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary,
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        Column(verticalArrangement = Arrangement.SpaceBetween) {
+                            Text(text = chat.fromUserId, style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                chat.lastMessageText,
+                                style = MaterialTheme.typography.bodySmall,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    HorizontalDivider()
+                }
+            }
         }
     }
 }
