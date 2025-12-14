@@ -16,9 +16,6 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.*
@@ -48,7 +45,7 @@ import kotlin.time.ExperimentalTime
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalComposeUiApi::class)
 @Composable
-fun Conversations(chats: List<ChatDto>, messages: Map<String, List<MessageDto>>, modifier: Modifier) {
+fun Conversations(viewModel: ConversationViewModel, chats: List<ChatDto>, messages: Map<String, List<MessageDto>>, modifier: Modifier) {
     val navigator = rememberListDetailPaneScaffoldNavigator<Nothing>()
     val scope = rememberCoroutineScope()
     val isListAndDetailVisible =

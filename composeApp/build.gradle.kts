@@ -17,7 +17,8 @@ kotlin {
     }
     
     jvm()
-    
+
+
     sourceSets {
         androidMain.dependencies {
             implementation(compose.preview)
@@ -37,6 +38,12 @@ kotlin {
             implementation(libs.kotlinx.datetime)
             implementation(libs.material3)
             implementation("org.jetbrains.compose.material:material-icons-core:1.7.3")
+            implementation(libs.ktor.client.core)
+            implementation(libs.ktor.client.websockets)
+            implementation(libs.ktor.client.serialization)
+            implementation(libs.ktor.ktor.client.cio)
+            implementation(libs.ktor.serialization.kotlinx.json)
+            implementation(libs.ktor.content.negotiation)
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

@@ -5,9 +5,11 @@ package org.chats
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import org.chats.dto.ChatDto
 import org.chats.dto.MessageDto
+import org.chats.ui.ConversationViewModel
 import org.chats.ui.Conversations
 import org.chats.ui.Theme
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -44,9 +46,12 @@ private val messages = mapOf(
 @Composable
 @Preview
 fun App() {
+    val viewModel = remember { ConversationViewModel() }
+
     Theme {
         Scaffold { padding ->
             Conversations(
+                viewModel = viewModel,
                 chats = chats,
                 messages = messages,
                 modifier = Modifier.padding(padding)
