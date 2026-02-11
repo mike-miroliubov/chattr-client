@@ -12,17 +12,13 @@ import kotlin.time.ExperimentalTime
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
+        val container = (application as ChatterApplication).container
+
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
         setContent {
-            App()
+            App(container)
         }
     }
-}
-
-@Preview
-@Composable
-fun AppAndroidPreview() {
-    App()
 }

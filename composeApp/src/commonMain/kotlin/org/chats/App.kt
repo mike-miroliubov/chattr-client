@@ -44,8 +44,7 @@ private val messages = mapOf(
 )
 
 @Composable
-@Preview
-fun App() {
+fun App(container: AppContainer) {
     val viewModel = remember { ConversationViewModel() }
 
     Theme {

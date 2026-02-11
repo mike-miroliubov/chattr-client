@@ -9,6 +9,8 @@ import androidx.compose.ui.window.rememberWindowState
 import kotlin.time.ExperimentalTime
 
 fun main() = application {
+    val container = AppContainer()
+
     Window(
         onCloseRequest = ::exitApplication,
         title = "chattr-messenger-client",
@@ -16,6 +18,6 @@ fun main() = application {
             width = 900.dp
         )
     ) {
-        App()
+        App(container)
     }
 }
