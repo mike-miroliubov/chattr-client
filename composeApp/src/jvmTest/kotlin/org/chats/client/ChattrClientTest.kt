@@ -7,9 +7,9 @@ import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeoutOrNull
 import org.chats.dto.ChatMessageDto
-import org.junit.After
-import org.junit.Before
-import org.junit.Test
+import org.junit.jupiter.api.AfterEach
+import org.junit.jupiter.api.BeforeEach
+import org.junit.jupiter.api.Test
 import kotlin.test.assertEquals
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
@@ -17,13 +17,13 @@ import kotlin.time.ExperimentalTime
 class ChattrClientTest {
     private val mockServer = MockSocketServer()
 
-    @Before
+    @BeforeEach
     fun setUp() {
         mockServer.start()
         Thread.sleep(500)
     }
 
-    @After
+    @AfterEach
     fun tearDown() = mockServer.stop()
 
     @Test

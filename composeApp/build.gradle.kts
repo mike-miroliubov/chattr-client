@@ -55,7 +55,14 @@ kotlin {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
         }
+        jvmTest.dependencies {
+            implementation("org.junit.jupiter:junit-jupiter:5.10.2")
+        }
     }
+}
+
+tasks.withType<Test> {
+    useJUnitPlatform()
 }
 
 android {

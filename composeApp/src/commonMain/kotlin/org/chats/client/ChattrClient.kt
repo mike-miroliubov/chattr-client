@@ -63,21 +63,15 @@ class ChattrClient(val userName: String, val host: String, val port: Int) {
                 request = { parameter("userName", userName) }
             ) {
                 // this runs on a new coroutine to allow async parallel sending
-                val senderJob = launch {
+                launch {
                     while (true) {
                         sendSerialized(sendChan.receive().let { WebsocketOutgoingMessageDto(it.id, it.from, it.text) })
                     }
                 }
 
                 // this runs on the main client's coroutine so that its scope is coupled with the scope of the websocket session
-                try {
-                    while (true) {
-                        receiveFlow.emit(receiveDeserialized<WebsocketIncomingMessageDto>())
-                    }
-                } catch (e: Exception) {
-                    // catch all exceptions
-                    senderJob.cancel(CancellationException("Websocket closed", e))
-                    throw e
+                while (true) {
+                    receiveFlow.emit(receiveDeserialized<WebsocketIncomingMessageDto>())
                 }
             }
         }
