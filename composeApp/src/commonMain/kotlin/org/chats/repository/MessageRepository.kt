@@ -1,7 +1,7 @@
 package org.chats.repository
 
-import org.chats.dto.MessageDto
+import org.chats.dto.ChatMessageDto
 
 interface MessageRepository {
-    suspend fun saveMessage(msg: MessageDto)
+    suspend fun saveMessage(msg: ChatMessageDto)
 }

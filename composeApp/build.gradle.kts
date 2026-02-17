@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    kotlin("plugin.serialization") version libs.versions.kotlin
 }
 
 kotlin {
@@ -47,6 +48,8 @@ kotlin {
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)
+            implementation(libs.ktor.server.websockets)
+            implementation(libs.ktor.server.cio)
         }
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)

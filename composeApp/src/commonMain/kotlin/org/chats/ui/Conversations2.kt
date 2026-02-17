@@ -36,7 +36,7 @@ import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.chats.dto.ChatDto
-import org.chats.dto.MessageDto
+import org.chats.dto.ChatMessageDto
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -45,7 +45,7 @@ import kotlin.time.ExperimentalTime
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalComposeUiApi::class)
 @Composable
-fun Conversations(viewModel: ConversationViewModel, chats: List<ChatDto>, messages: Map<String, List<MessageDto>>, modifier: Modifier) {
+fun Conversations(viewModel: ConversationViewModel, chats: List<ChatDto>, messages: Map<String, List<ChatMessageDto>>, modifier: Modifier) {
     val navigator = rememberListDetailPaneScaffoldNavigator<Nothing>()
     val scope = rememberCoroutineScope()
     val isListAndDetailVisible =
@@ -298,12 +298,12 @@ fun Avatar(
  */
 @Composable
 private fun DetailContent(
-    messages: List<MessageDto>?,
+    messages: List<ChatMessageDto>?,
     modifier: Modifier = Modifier,
 ) {
 
     val msgs = messages ?: listOf()
-    fun shouldShowFrom(index: Int, msg: MessageDto): Boolean = index == 0 || msgs[index - 1].from != msg.from
+    fun shouldShowFrom(index: Int, msg: ChatMessageDto): Boolean = index == 0 || msgs[index - 1].from != msg.from
 
     LazyColumn(
         modifier = modifier

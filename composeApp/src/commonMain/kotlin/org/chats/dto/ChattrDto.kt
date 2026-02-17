@@ -5,12 +5,14 @@ package org.chats.dto
 import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-data class MessageDto(
+sealed interface MessageDto
+
+data class ChatMessageDto(
     val id: String,
     val from: String,
     val text: String,
     val receivedAt: Instant
-)
+) : MessageDto
 
 data class ChatDto(
     val id: String,
