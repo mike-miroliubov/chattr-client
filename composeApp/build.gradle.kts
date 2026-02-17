@@ -56,7 +56,8 @@ kotlin {
             implementation(libs.kotlinx.coroutinesSwing)
         }
         jvmTest.dependencies {
-            implementation("org.junit.jupiter:junit-jupiter:5.10.2")
+            implementation(libs.junit.jupiter)
+            implementation(libs.assertj.core)
         }
     }
 }

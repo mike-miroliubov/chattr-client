@@ -14,10 +14,12 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.net.ServerSocket
 
-class MockSocketServer(val port: Int = findFreePort()) {
-    val endpoints = mutableMapOf<String, suspend DefaultWebSocketServerSession.() -> Unit>()
-    val endpointsMutex = Mutex()
-    private var launchHandle: Job? = null
+typealias EndpointHandler = suspend DefaultWebSocketServerSession.() -> Unit
+
+class MockSocketServer(val port: Int = findFreePort(), endpoints: Map<String, suspend DefaultWebSocketServerSession.() -> Unit>) {
+    private val onEndpointConnect: MutableMap<String, EndpointHandler> = mutableMapOf()
+    private val endpointsMutex = Mutex()
+    private var serverJob: Job? = null
 
     val server = embeddedServer(CIO, port = port) {
         install(WebSockets)
@@ -25,43 +27,40 @@ class MockSocketServer(val port: Int = findFreePort()) {
         routing {
             plugin(WebSockets) // early require
 
-//            route(Regex(".*"), HttpMethod.Get) {
-//                webSocketRaw(protocol, negotiateExtensions) {
-//                    if (call.request.uri in endpoints.keys) {
-//                        endpoints[call.request.uri]?.invoke(this)
-//                    } else {
-//                        close(CloseReason(CloseReason.Codes.CANNOT_ACCEPT, "Endpoint not found"))
-//                    }
-//                }
-//            }
+            for ((uri, handler) in endpoints) {
+                webSocket(uri) {
+                    val onConnect = onEndpointConnect[uri]
+                    if (onConnect != null) {
+                        onConnect(this)
+                    }
 
-            webSocket("/messenger/api/connect") {
-                send("{\"from\":\"\",\"id\":\"\",\"text\":\"You joined the chat\"}")
-                for (frame in incoming) {
-                    frame as? Frame.Text ?: continue
-                    val receivedText = frame.readText()
-                    println("Received text: $receivedText")
-                    send("{\"from\":\"bar\",\"id\":\"1\",\"text\":\"ho\"}")
+                    for (frame in incoming) {
+                        frame as? Frame.Text ?: continue
+                        val receivedText = frame.readText()
+                        println("Received text: $receivedText")
+                        send("{\"from\":\"bar\",\"id\":\"1\",\"text\":\"ho\"}")
+                    }
                 }
             }
         }
     }
 
     fun start() {
-        launchHandle = GlobalScope.launch { server.start(wait = true) }
+        serverJob = GlobalScope.launch { server.start(wait = true) }
     }
 
     fun stop() {
         server.stop(gracePeriodMillis = 0, timeoutMillis = 0)
-        launchHandle?.cancel()
+        serverJob?.cancel()
     }
 
-    fun addEndpoint(uri: String, handler: suspend DefaultWebSocketServerSession.() -> Unit) {
+    fun onConnect(uri: String, onConnectHandler: suspend DefaultWebSocketServerSession.() -> Unit): MockSocketServer {
         runBlocking {
             endpointsMutex.withLock {
-                endpoints[uri] = handler
+                onEndpointConnect[uri] = onConnectHandler
             }
         }
+        return this
     }
 }
 
