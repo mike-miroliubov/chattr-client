@@ -24,9 +24,10 @@ private const val WELCOME_MESSAGE_JSON = """
 """
 
 class ChattrClientTest {
-    private val mockServer = MockSocketServer(endpoints = mapOf(
-        "/messenger/api/connect" to {}
-    ))
+    private val mockServer = MockSocketServer(
+        endpoints = mapOf(
+            "/messenger/api/connect" to {}
+        ))
 
     @BeforeEach
     fun setUp() {
@@ -38,9 +39,14 @@ class ChattrClientTest {
 
     @Test
     fun testReceiveMessage() {
-        mockServer.onConnect("/messenger/api/connect") {
-            send(WELCOME_MESSAGE_JSON)
-        }
+        // given
+        mockServer
+            .onConnect("/messenger/api/connect") {
+                send(WELCOME_MESSAGE_JSON)
+            }
+            .onMessage({ it == "{\"id\":\"1\",\"from\":\"foo\",\"text\":\"hey\"}" }) {
+                send("{\"from\":\"bar\",\"id\":\"2\",\"text\":\"ho\"}")
+            }
 
         runBlocking {
             // when
@@ -56,7 +62,7 @@ class ChattrClientTest {
                 .usingRecursiveFieldByFieldElementComparatorIgnoringFields("receivedAt")
                 .containsExactly(
                     ChatMessageDto("", "", "You joined the chat", Clock.System.now()),
-                    ChatMessageDto("1", "bar", "ho", Clock.System.now())
+                    ChatMessageDto("2", "bar", "ho", Clock.System.now())
                 )
         }
     }

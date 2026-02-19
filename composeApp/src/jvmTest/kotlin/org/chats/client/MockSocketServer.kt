@@ -15,9 +15,11 @@ import kotlinx.coroutines.sync.withLock
 import java.net.ServerSocket
 
 typealias EndpointHandler = suspend DefaultWebSocketServerSession.() -> Unit
+typealias TextMessageMatcher = (String) -> Boolean
 
 class MockSocketServer(val port: Int = findFreePort(), endpoints: Map<String, suspend DefaultWebSocketServerSession.() -> Unit>) {
     private val onEndpointConnect: MutableMap<String, EndpointHandler> = mutableMapOf()
+    private val onMessageHandlers: MutableMap<String, MutableList<Pair<TextMessageMatcher, EndpointHandler>>> = mutableMapOf()
     private val endpointsMutex = Mutex()
     private var serverJob: Job? = null
 
@@ -37,8 +39,9 @@ class MockSocketServer(val port: Int = findFreePort(), endpoints: Map<String, su
                     for (frame in incoming) {
                         frame as? Frame.Text ?: continue
                         val receivedText = frame.readText()
+
                         println("Received text: $receivedText")
-                        send("{\"from\":\"bar\",\"id\":\"1\",\"text\":\"ho\"}")
+                        onMessageHandlers[uri]?.find { (matcher, _) -> matcher(receivedText) }?.second?.invoke(this)
                     }
                 }
             }
@@ -54,13 +57,26 @@ class MockSocketServer(val port: Int = findFreePort(), endpoints: Map<String, su
         serverJob?.cancel()
     }
 
-    fun onConnect(uri: String, onConnectHandler: suspend DefaultWebSocketServerSession.() -> Unit): MockSocketServer {
+    fun onConnect(uri: String, onConnectHandler: EndpointHandler): EndpointConfigurator {
         runBlocking {
             endpointsMutex.withLock {
                 onEndpointConnect[uri] = onConnectHandler
             }
         }
-        return this
+        return EndpointConfigurator(uri)
+    }
+
+    inner class EndpointConfigurator(val uri: String) {
+        fun onMessage(messageMatcher: (String) -> Boolean, onMessageHandler: EndpointHandler): EndpointConfigurator {
+            runBlocking {
+                endpointsMutex.withLock {
+                    onMessageHandlers.getOrPut(uri) { mutableListOf() } += (messageMatcher to onMessageHandler)
+                }
+            }
+            return this
+        }
+
+        fun also(): MockSocketServer = this@MockSocketServer
     }
 }
 
