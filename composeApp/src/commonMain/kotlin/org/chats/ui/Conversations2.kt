@@ -2,7 +2,6 @@
 
 package org.chats.ui
 
-import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
 import androidx.compose.foundation.background
@@ -12,10 +11,13 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
 import androidx.compose.material3.adaptive.layout.*
@@ -28,6 +30,16 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.backhandler.BackHandler
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -37,7 +49,6 @@ import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import org.chats.dto.ChatDto
 import org.chats.dto.ChatMessageDto
-import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
 /*
@@ -45,12 +56,9 @@ import kotlin.time.ExperimentalTime
  */
 @OptIn(ExperimentalMaterial3AdaptiveApi::class, ExperimentalComposeUiApi::class)
 @Composable
-fun Conversations(viewModel: ConversationViewModel, chats: List<ChatDto>, messages: Map<String, List<ChatMessageDto>>, modifier: Modifier) {
+fun Conversations(viewModel: ConversationViewModel, modifier: Modifier) {
     val navigator = rememberListDetailPaneScaffoldNavigator<Nothing>()
     val scope = rememberCoroutineScope()
-    val isListAndDetailVisible =
-        navigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded &&
-                navigator.scaffoldValue[ListDetailPaneScaffoldRole.List] == PaneAdaptedValue.Expanded
 
     var selectedChatId: String? by rememberSaveable { mutableStateOf(null) }
 
@@ -59,55 +67,71 @@ fun Conversations(viewModel: ConversationViewModel, chats: List<ChatDto>, messag
     }
 
     SharedTransitionLayout {
-        AnimatedContent(targetState = isListAndDetailVisible) { _ ->
-            ListDetailPaneScaffold(
-                directive = navigator.scaffoldDirective,
-                value = navigator.scaffoldValue,
-                listPane = {
-                    val isDetailVisible =
-                        navigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
-                    val chatId = selectedChatId
+        ListDetailPaneScaffold(
+            directive = navigator.scaffoldDirective,
+            value = navigator.scaffoldValue,
+            listPane = {
+                val isDetailVisible =
+                    navigator.scaffoldValue[ListDetailPaneScaffoldRole.Detail] == PaneAdaptedValue.Expanded
+                val chatId = selectedChatId
 
-                    AnimatedPane {
-                        ListContent(
-                            chats = chats,
-                            selectionState = if (isDetailVisible && chatId != null) {
-                                SelectionVisibilityState.ShowSelection(chatId)
-                            } else {
-                                SelectionVisibilityState.NoSelection
-                            },
-                            onChatClick = { chat ->
-                                selectedChatId = chat.id
-                                scope.launch {
-                                    navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
-                                }
-                            },
-                            isDetailsVisible = isDetailVisible,
-                            modifier = modifier
-                        )
-                    }
-                },
-                detailPane = {
-                    val messages = selectedChatId?.let(messages::get)
-
-                    AnimatedPane {
-                        DetailContent(messages, modifier)
-                    }
-                },
-                paneExpansionState = rememberPaneExpansionState(navigator.scaffoldValue),
-                paneExpansionDragHandle = { state ->
-                    val interactionSource = remember { MutableInteractionSource() }
-                    VerticalDragHandle(
-                        modifier =
-                            Modifier.paneExpansionDraggable(
-                                state,
-                                LocalMinimumInteractiveComponentSize.current,
-                                interactionSource
-                            ), interactionSource = interactionSource
+                AnimatedPane {
+                    ListContent(
+                        chats = viewModel.chats,
+                        selectionState = if (isDetailVisible && chatId != null) {
+                            SelectionVisibilityState.ShowSelection(chatId)
+                        } else {
+                            SelectionVisibilityState.NoSelection
+                        },
+                        onChatClick = { chat ->
+                            selectedChatId = chat.id
+                            scope.launch {
+                                navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
+                            }
+                        },
+                        onNewChat = { recipient ->
+                            viewModel.openChat(recipient)
+                            val from = viewModel.userName ?: return@ListContent
+                            selectedChatId = listOf(from, recipient).sorted().joinToString("#")
+                            scope.launch {
+                                navigator.navigateTo(ListDetailPaneScaffoldRole.Detail)
+                            }
+                        },
+                        isDetailsVisible = isDetailVisible,
+                        modifier = modifier
                     )
                 }
-            )
-        }
+            },
+            detailPane = {
+                val chatId = selectedChatId
+                val chat = chatId?.let { id -> viewModel.chats.find { it.id == id } }
+                val messages = chatId?.let(viewModel.messages::get)
+
+                AnimatedPane {
+                    DetailContent(
+                        messages = messages,
+                        chatPartner = chat?.fromUserId,
+                        onSend = { text ->
+                            val to = chat?.fromUserId ?: return@DetailContent
+                            scope.launch { viewModel.sendMessage(to, text) }
+                        },
+                        modifier = modifier
+                    )
+                }
+            },
+            paneExpansionState = rememberPaneExpansionState(navigator.scaffoldValue),
+            paneExpansionDragHandle = { state ->
+                val interactionSource = remember { MutableInteractionSource() }
+                VerticalDragHandle(
+                    modifier =
+                        Modifier.paneExpansionDraggable(
+                            state,
+                            LocalMinimumInteractiveComponentSize.current,
+                            interactionSource
+                        ), interactionSource = interactionSource
+                )
+            }
+        )
     }
 }
 
@@ -138,44 +162,84 @@ fun ListContent(
     chats: List<ChatDto>,
     selectionState: SelectionVisibilityState,
     onChatClick: (chat: ChatDto) -> Unit,
+    onNewChat: (recipient: String) -> Unit,
     modifier: Modifier = Modifier,
     isDetailsVisible: Boolean,
 ) {
     val (searchQuery, setSearchQuery) = rememberSaveable { mutableStateOf("") }
-    var filteredChats by rememberSaveable { mutableStateOf(chats) }
-    var expanded by rememberSaveable { mutableStateOf(false) }
+    val filteredChats = if (searchQuery.isBlank()) chats
+    else chats.filter { it.fromUserId.contains(searchQuery, ignoreCase = true) }
+    var showNewChatDialog by remember { mutableStateOf(false) }
+
+    if (showNewChatDialog) {
+        NewChatDialog(
+            onConfirm = { recipient ->
+                showNewChatDialog = false
+                onNewChat(recipient)
+            },
+            onDismiss = { showNewChatDialog = false }
+        )
+    }
 
     Row(modifier = Modifier.fillMaxSize()) {
         Column(modifier = Modifier.weight(1f)) {
-            Row(modifier.padding(16.dp)
-                .fillMaxWidth()
+            Row(
+                modifier = modifier.padding(16.dp).fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 SearchField(
                     query = searchQuery,
-                    onQueryChange = {
-                        setSearchQuery(it)
-                        filteredChats = listOf(
-                            ChatDto("example", "foo", Clock.System.now(),
-                                "This is a search result"),
-                        )
-                    },
+                    onQueryChange = { setSearchQuery(it) },
                     onSearch = {},
-                    onExpandedChange = {
-                        expanded = it
-                        println("Expanded: $it")
-                    },
+                    onExpandedChange = {},
                     modifier = Modifier.weight(1f),
                 )
+                Spacer(modifier = Modifier.width(8.dp))
+                IconButton(onClick = { showNewChatDialog = true }) {
+                    Icon(
+                        imageVector = Icons.Default.Edit,
+                        contentDescription = "New chat",
+                    )
+                }
             }
             HorizontalDivider()
             SearchResults(modifier, selectionState, filteredChats, onChatClick, isDetailsVisible)
         }
         if (isDetailsVisible) {
             VerticalDivider(
-                modifier = Modifier.fillMaxHeight(), // Makes the divider span the full height of the Row
+                modifier = Modifier.fillMaxHeight(),
             )
         }
     }
+}
+
+@Composable
+private fun NewChatDialog(onConfirm: (String) -> Unit, onDismiss: () -> Unit) {
+    var recipient by remember { mutableStateOf("") }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("New conversation") },
+        text = {
+            OutlinedTextField(
+                value = recipient,
+                onValueChange = { recipient = it },
+                label = { Text("Recipient username") },
+                singleLine = true,
+            )
+        },
+        confirmButton = {
+            TextButton(
+                onClick = { if (recipient.isNotBlank()) onConfirm(recipient.trim()) },
+                enabled = recipient.isNotBlank(),
+            ) {
+                Text("Start")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text("Cancel") }
+        }
+    )
 }
 
 @Composable
@@ -273,9 +337,9 @@ private fun shouldShowSelection(selectionState: SelectionVisibilityState, chatId
 @Composable
 fun Avatar(
     userId: String,
+    modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.primary,
     textColor: Color = MaterialTheme.colorScheme.onPrimary,
-    modifier: Modifier = Modifier
 ) {
     Box(
         modifier = modifier.then(
@@ -298,43 +362,130 @@ fun Avatar(
  */
 @Composable
 private fun DetailContent(
-    messages: List<ChatMessageDto>?,
     modifier: Modifier = Modifier,
+    messages: List<ChatMessageDto>?,
+    chatPartner: String?,
+    onSend: (String) -> Unit,
 ) {
-
     val msgs = messages ?: listOf()
-    fun shouldShowFrom(index: Int, msg: ChatMessageDto): Boolean = index == 0 || msgs[index - 1].from != msg.from
+    val listState = rememberLazyListState()
 
-    LazyColumn(
-        modifier = modifier
-            .padding(vertical = 16.dp, horizontal = 16.dp)
-    ) {
-        itemsIndexed(msgs) { index, it ->
-            Row(
-                verticalAlignment = Alignment.Top,
-                modifier = Modifier.padding(vertical = 4.dp)
-            ) {
-                if (shouldShowFrom(index, it)) {
-                    Avatar(it.from, modifier = modifier.padding(top = 2.dp))
-                    Spacer(modifier = Modifier.width(12.dp))
-                } else {
-                    Spacer(modifier = Modifier.width(52.dp))
-                }
+    // Scroll to bottom when new messages arrive
+    LaunchedEffect(msgs.size) {
+        if (msgs.isNotEmpty()) listState.animateScrollToItem(msgs.size - 1)
+    }
 
-                Column(modifier = Modifier.weight(1f)) {
+    fun shouldShowFrom(index: Int, msg: ChatMessageDto): Boolean =
+        index == 0 || msgs[index - 1].from != msg.from
+
+    Column(modifier = modifier.fillMaxSize()) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .weight(1f)
+                .padding(vertical = 16.dp, horizontal = 16.dp)
+        ) {
+            itemsIndexed(msgs) { index, it ->
+                Row(
+                    verticalAlignment = Alignment.Top,
+                    modifier = Modifier.padding(vertical = 4.dp)
+                ) {
                     if (shouldShowFrom(index, it)) {
-                        Text(text = it.from, color = MaterialTheme.colorScheme.primary)
+                        Avatar(it.from, modifier = Modifier.padding(top = 2.dp))
+                        Spacer(modifier = Modifier.width(12.dp))
+                    } else {
+                        Spacer(modifier = Modifier.width(52.dp))
                     }
-                    Text(text = it.text)
+
+                    Column(modifier = Modifier.weight(1f)) {
+                        if (shouldShowFrom(index, it)) {
+                            Text(text = it.from, color = MaterialTheme.colorScheme.primary)
+                        }
+                        Text(text = it.text)
+                    }
+
+                    Text(
+                        it.receivedAt
+                            .toLocalDateTime(TimeZone.currentSystemDefault())
+                            .let { t -> "${t.hour}:${t.minute.toString().padStart(2, '0')}" },
+                        textAlign = TextAlign.End,
+                    )
                 }
-
-                Text(
-                    it.receivedAt
-                        .toLocalDateTime(TimeZone.currentSystemDefault())
-                        .let { "${it.hour}:${it.minute}" }, textAlign = TextAlign.Right)
-
             }
+        }
 
+        if (chatPartner != null) {
+            HorizontalDivider()
+            MessageInput(onSend = onSend)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun MessageInput(onSend: (String) -> Unit) {
+    var text by remember { mutableStateOf("") }
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused = interactionSource.collectIsFocusedAsState().value
+    val colors = SearchBarDefaults.inputFieldColors()
+    val textColor = colors.textColor(enabled = true, isError = false, focused = focused)
+
+    fun submit() {
+        if (text.isNotBlank()) {
+            onSend(text.trim())
+            text = ""
+        }
+    }
+
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.padding(8.dp).fillMaxWidth()
+    ) {
+        BasicTextField(
+            value = text,
+            onValueChange = { text = it },
+            modifier = Modifier
+                .weight(1f)
+                .height(SearchBarDefaults.InputFieldHeight),
+            singleLine = true,
+            textStyle = LocalTextStyle.current.merge(TextStyle(color = textColor)),
+            cursorBrush = SolidColor(colors.cursorColor),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+            keyboardActions = KeyboardActions(onSend = { submit() }),
+            interactionSource = interactionSource,
+            decorationBox = { innerTextField ->
+                TextFieldDefaults.DecorationBox(
+                    value = text,
+                    innerTextField = innerTextField,
+                    singleLine = true,
+                    visualTransformation = VisualTransformation.None,
+                    placeholder = { Text("Message...") },
+                    shape = SearchBarDefaults.inputFieldShape,
+                    colors = colors,
+                    contentPadding = TextFieldDefaults.contentPaddingWithoutLabel(),
+                    enabled = true,
+                    interactionSource = interactionSource,
+                    container = {
+                        val containerColor by animateColorAsState(
+                            targetValue = colors.containerColor(
+                                enabled = true,
+                                isError = false,
+                                focused = focused,
+                            )
+                        )
+                        Box(Modifier.background(containerColor, SearchBarDefaults.inputFieldShape))
+                    },
+                )
+            },
+        )
+        Spacer(modifier = Modifier.width(4.dp))
+        IconButton(onClick = ::submit, enabled = text.isNotBlank()) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Send,
+                contentDescription = "Send",
+                tint = if (text.isNotBlank()) MaterialTheme.colorScheme.primary
+                       else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+            )
         }
     }
 }

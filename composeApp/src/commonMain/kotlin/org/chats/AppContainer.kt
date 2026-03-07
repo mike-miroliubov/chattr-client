@@ -1,9 +1,6 @@
 package org.chats
 
-import org.chats.ui.ConversationViewModel
-
-class AppContainer {
-    fun getConversationViewModel(): ConversationViewModel {
-        return ConversationViewModel()
-    }
-}
+class AppContainer(
+    val serverHost: String = "localhost",
+    val serverPort: Int = 80,
+)

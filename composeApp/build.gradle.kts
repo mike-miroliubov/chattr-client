@@ -45,6 +45,7 @@ kotlin {
             implementation(libs.ktor.ktor.client.cio)
             implementation(libs.ktor.serialization.kotlinx.json)
             implementation(libs.ktor.content.negotiation)
+            implementation("com.github.f4b6a3:uuid-creator:6.0.0")
         }
         commonTest.dependencies {
             implementation(libs.kotlin.test)

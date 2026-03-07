@@ -100,14 +100,14 @@ fun SearchField(
     )
 }
 
-private fun TextFieldColors.containerColor(enabled: Boolean, isError: Boolean, focused: Boolean): Color = when {
+internal fun TextFieldColors.containerColor(enabled: Boolean, isError: Boolean, focused: Boolean): Color = when {
     !enabled -> this.disabledContainerColor
     isError -> this.errorContainerColor
     focused -> this.focusedContainerColor
     else -> this.unfocusedContainerColor
 }
 
-private fun TextFieldColors.textColor(enabled: Boolean, isError: Boolean, focused: Boolean): Color =
+internal fun TextFieldColors.textColor(enabled: Boolean, isError: Boolean, focused: Boolean): Color =
     when {
         !enabled -> disabledTextColor
         isError -> errorTextColor
