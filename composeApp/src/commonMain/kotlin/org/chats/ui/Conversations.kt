@@ -46,7 +46,7 @@ fun Conversation(chat: ChatDto, isSelected: Boolean, onSelect: (ChatDto) -> Unit
             Spacer(modifier = Modifier.height(4.dp))
 
             Text(
-                text = chat.lastMessageText,
+                text = chat.lastText,
                 modifier = Modifier.padding(4.dp),
                 style = MaterialTheme.typography.bodyMedium
             )

@@ -33,7 +33,7 @@ private data class WebsocketIncomingMessageDto(
 @Serializable
 private data class WebsocketOutgoingMessageDto(
     val id: String,
-    val from: String,
+    val to: String,
     val text: String,
 )
 
@@ -51,7 +51,7 @@ class ChattrClient(val userName: String, val host: String, val port: Int) {
 
     val messages: Flow<ChatMessageDto>
         get() = receiveFlow.asSharedFlow()
-            .map { ChatMessageDto(it.id, it.from, it.text, Clock.System.now()) }
+            .map { ChatMessageDto(it.id, it.from, userName, it.text, Clock.System.now()) }
 
     init {
         CoroutineScope(SupervisorJob() + Dispatchers.Default).launch {
@@ -65,7 +65,7 @@ class ChattrClient(val userName: String, val host: String, val port: Int) {
                 // this runs on a new coroutine to allow async parallel sending
                 launch {
                     while (true) {
-                        sendSerialized(sendChan.receive().let { WebsocketOutgoingMessageDto(it.id, it.from, it.text) })
+                        sendSerialized(sendChan.receive().let { WebsocketOutgoingMessageDto(it.id, it.to, it.text) })
                     }
                 }
 

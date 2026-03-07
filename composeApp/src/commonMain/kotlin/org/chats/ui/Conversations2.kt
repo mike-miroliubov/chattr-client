@@ -252,7 +252,7 @@ private fun SearchResults(
                         Column(verticalArrangement = Arrangement.SpaceBetween) {
                             Text(text = chat.fromUserId, style = MaterialTheme.typography.titleMedium)
                             Text(
-                                chat.lastMessageText,
+                                chat.lastText,
                                 style = MaterialTheme.typography.bodySmall,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis

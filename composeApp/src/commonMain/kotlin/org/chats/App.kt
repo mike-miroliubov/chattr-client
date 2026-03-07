@@ -24,21 +24,21 @@ private val chats = listOf(
 private val messages = mapOf(
     "foo#kite" to listOf(
         ChatMessageDto(
-            "", "foo", """
-            Lorem ipsum dolor sit amet, consectetur adipiscing elit, 
-            sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. 
-            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip 
-            ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore 
-            eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt 
+            "", "foo", "kite", """
+            Lorem ipsum dolor sit amet, consectetur adipiscing elit,
+            sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+            Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip
+            ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore
+            eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt
             mollit anim id est laborum.
         """.trimIndent().replace("\n", ""), Clock.System.now()
         ),
-        ChatMessageDto("", "foo", "hey", Clock.System.now()),
-        ChatMessageDto(id = "", from = "kite", text = "lol", receivedAt = Clock.System.now()),
-        ChatMessageDto("", "foo", "yeah", Clock.System.now()),
+        ChatMessageDto("", "foo", "kite", "hey", Clock.System.now()),
+        ChatMessageDto(id = "", from = "kite", to = "foo", text = "lol", receivedAt = Clock.System.now()),
+        ChatMessageDto("", "foo", "kite", "yeah", Clock.System.now()),
     ),
     "bar#kite" to listOf(
-        ChatMessageDto("", "bar", "let's go!", Clock.System.now()),
+        ChatMessageDto("", "bar", "kite", "let's go!", Clock.System.now()),
     )
 )
 

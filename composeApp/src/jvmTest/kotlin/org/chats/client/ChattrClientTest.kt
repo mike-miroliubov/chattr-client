@@ -44,14 +44,14 @@ class ChattrClientTest {
             .onConnect("/messenger/api/connect") {
                 send(WELCOME_MESSAGE_JSON)
             }
-            .onMessage({ it == "{\"id\":\"1\",\"from\":\"foo\",\"text\":\"hey\"}" }) {
+            .onMessage({ it == "{\"id\":\"1\",\"to\":\"foo\",\"text\":\"hey\"}" }) {
                 send("{\"from\":\"bar\",\"id\":\"2\",\"text\":\"ho\"}")
             }
 
         runBlocking {
             // when
             val client = ChattrClient("testUser", "localhost", mockServer.port)
-            client.send(ChatMessageDto("1", "foo", "hey", receivedAt = Clock.System.now()))
+            client.send(ChatMessageDto("1", "testUser", "foo", "hey", receivedAt = Clock.System.now()))
 
             val received = withTimeoutOrNull(5000) {
                 client.messages.take(2).toList()
@@ -59,10 +59,10 @@ class ChattrClientTest {
 
             // then
             assertThat(received)
-                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("receivedAt")
+                .usingRecursiveFieldByFieldElementComparatorIgnoringFields("receivedAt", "to")
                 .containsExactly(
-                    ChatMessageDto("", "", "You joined the chat", Clock.System.now()),
-                    ChatMessageDto("2", "bar", "ho", Clock.System.now())
+                    ChatMessageDto("", "", "", "You joined the chat", Clock.System.now()),
+                    ChatMessageDto("2", "bar", "", "ho", Clock.System.now())
                 )
         }
     }
