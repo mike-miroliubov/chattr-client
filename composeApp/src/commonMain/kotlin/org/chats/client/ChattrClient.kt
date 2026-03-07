@@ -49,8 +49,7 @@ class ChattrClient(val userName: String, val host: String, val port: Int) {
         }
     }
 
-    val messages: Flow<ChatMessageDto>
-        get() = receiveFlow.asSharedFlow()
+    val messages: Flow<ChatMessageDto> = receiveFlow.asSharedFlow()
             .map { ChatMessageDto(it.id, it.from, userName, it.text, Clock.System.now()) }
 
     init {
