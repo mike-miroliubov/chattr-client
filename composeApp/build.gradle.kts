@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.composeHotReload)
+    alias(libs.plugins.ksp)
     kotlin("plugin.serialization") version libs.versions.kotlin
 }
 
@@ -26,6 +27,7 @@ kotlin {
             implementation(libs.androidx.activity.compose)
         }
         commonMain.dependencies {
+            implementation(libs.room.runtime)
             implementation(compose.runtime)
             implementation(compose.foundation)
             implementation(compose.material3)
@@ -55,10 +57,13 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutinesSwing)
+            implementation(libs.sqlite.bundled)
         }
         jvmTest.dependencies {
             implementation(libs.junit.jupiter)
             implementation(libs.assertj.core)
+            implementation(libs.sqlite.bundled)
+            implementation(libs.room.runtime)
         }
     }
 }
@@ -96,6 +101,12 @@ android {
 
 dependencies {
     debugImplementation(compose.uiTooling)
+    add("kspAndroid", libs.room.compiler)
+    add("kspJvm", libs.room.compiler)
+}
+
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
 }
 
 compose.desktop {

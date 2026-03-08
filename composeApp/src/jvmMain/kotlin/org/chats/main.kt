@@ -1,15 +1,17 @@
-@file:OptIn(ExperimentalTime::class)
-
 package org.chats
 
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import androidx.compose.ui.window.rememberWindowState
-import kotlin.time.ExperimentalTime
+import androidx.room.Room
+import androidx.sqlite.driver.bundled.BundledSQLiteDriver
+import kotlinx.coroutines.Dispatchers
+import org.chats.db.ChattDatabase
+import java.io.File
 
 fun main() = application {
-    val container = AppContainer()
+    val container = AppContainer(database = createDatabase())
 
     Window(
         onCloseRequest = ::exitApplication,
@@ -20,4 +22,14 @@ fun main() = application {
     ) {
         App(container)
     }
+}
+
+private fun createDatabase(): ChattDatabase {
+    val dbPath = "${System.getProperty("user.home")}/.chattr/chattr.db"
+    File(dbPath).parentFile?.mkdirs()
+    return Room.databaseBuilder<ChattDatabase>(name = dbPath)
+        .setDriver(BundledSQLiteDriver())
+        .setQueryCoroutineContext(Dispatchers.IO)
+        .fallbackToDestructiveMigration(true)
+        .build()
 }

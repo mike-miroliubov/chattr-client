@@ -16,10 +16,15 @@ import kotlinx.coroutines.launch
 import org.chats.client.ChattrClient
 import org.chats.dto.ChatDto
 import org.chats.dto.ChatMessageDto
+import org.chats.repository.ChatRepository
+import org.chats.repository.MessageRepository
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
-class ConversationViewModel {
+class ConversationViewModel(
+    private val messageRepo: MessageRepository? = null,
+    private val chatRepo: ChatRepository? = null
+) {
     var userName: String? by mutableStateOf(null)
         private set
 
@@ -30,12 +35,27 @@ class ConversationViewModel {
     val messages: Map<String, List<ChatMessageDto>> get() = _messages
 
     private var client: ChattrClient? = null
+    private var scope: CoroutineScope? = null
 
     private val _toastEvents = MutableSharedFlow<String>(extraBufferCapacity = 10)
     val toastEvents: Flow<String> = _toastEvents.asSharedFlow()
 
+    suspend fun loadPersistedData() {
+        val username = userName ?: return
+        val chats = chatRepo?.getAll(username) ?: return
+        _chats.clear()
+        _chats.addAll(chats)
+        for (chat in chats) {
+            val msgs = messageRepo?.getMessages(chat.id, username) ?: emptyList()
+            if (msgs.isNotEmpty()) {
+                _messages[chat.id] = msgs
+            }
+        }
+    }
+
     fun connect(username: String, host: String, port: Int, scope: CoroutineScope) {
         userName = username
+        this.scope = scope
         client = ChattrClient(username, host, port)
         scope.launch {
             client!!.messages.collect { msg ->
@@ -47,6 +67,10 @@ class ConversationViewModel {
                     val chatId = listOf(msg.from, username).sorted().joinToString("#")
                     _messages[chatId] = (_messages[chatId] ?: emptyList()) + msg
                     upsertChat(chatId, msg.from, msg)
+                    scope.launch {
+                        messageRepo?.saveMessage(msg, username)
+                        chatRepo?.upsert(ChatDto(chatId, msg.from, msg.receivedAt, msg.text), username)
+                    }
                 }
             }
         }
@@ -60,13 +84,17 @@ class ConversationViewModel {
         val chatId = listOf(from, to).sorted().joinToString("#")
         _messages[chatId] = (_messages[chatId] ?: emptyList()) + msg
         upsertChat(chatId, to, msg)
+        messageRepo?.saveMessage(msg, from)
+        chatRepo?.upsert(ChatDto(chatId, to, msg.receivedAt, msg.text), from)
     }
 
     fun openChat(recipient: String) {
         val from = userName ?: return
         val chatId = listOf(from, recipient).sorted().joinToString("#")
         if (_chats.none { it.id == chatId }) {
-            _chats.add(ChatDto(chatId, recipient, Clock.System.now(), ""))
+            val chat = ChatDto(chatId, recipient, Clock.System.now(), "")
+            _chats.add(chat)
+            scope?.launch { chatRepo?.upsert(chat, from) }
         }
     }
 

@@ -17,15 +17,18 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 @Composable
-fun LoginScreen(onLogin: (username: String) -> Unit) {
+fun LoginScreen(viewModel: LoginViewModel) {
     var username by remember { mutableStateOf("") }
+    val scope = rememberCoroutineScope()
 
     Column(
         modifier = Modifier.fillMaxSize().padding(32.dp),
@@ -42,7 +45,11 @@ fun LoginScreen(onLogin: (username: String) -> Unit) {
             singleLine = true,
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
             keyboardActions = KeyboardActions(onDone = {
-                if (username.isNotBlank()) onLogin(username.trim())
+                if (username.isNotBlank()) {
+                    scope.launch {
+                        viewModel.login(username)
+                    }
+                }
             })
         )
         Spacer(modifier = Modifier.height(16.dp))
@@ -50,7 +57,9 @@ fun LoginScreen(onLogin: (username: String) -> Unit) {
         Button(
             onClick = {
                 if (username.isNotBlank()) {
-                    onLogin(username.trim())
+                    scope.launch {
+                        viewModel.login(username)
+                    }
                 }
             },
             enabled = username.isNotBlank(),
