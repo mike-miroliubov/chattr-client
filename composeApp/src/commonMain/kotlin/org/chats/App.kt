@@ -9,20 +9,30 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import kotlinx.coroutines.flow.take
+import kotlinx.coroutines.launch
 import org.chats.ui.ConversationViewModel
 import org.chats.ui.Conversations
 import org.chats.ui.LoginScreen
+import org.chats.ui.LoginViewModel
 import org.chats.ui.Theme
 
 @Composable
 fun App(container: AppContainer) {
-    val viewModel = remember { ConversationViewModel() }
+    val loginViewModel = remember { LoginViewModel(container.userRepository) }
+    val viewModel = remember { ConversationViewModel(container.messageRepository, container.chatRepository) }
     val scope = rememberCoroutineScope()
     val snackbarHostState = remember { SnackbarHostState() }
 
     LaunchedEffect(viewModel) {
-        viewModel.toastEvents.collect { message ->
-            snackbarHostState.showSnackbar(message)
+        scope.launch {
+            viewModel.toastEvents.collect { message ->
+                snackbarHostState.showSnackbar(message)
+            }
+        }
+        loginViewModel.loginFlow.take(1).collect { userName ->
+            viewModel.connect(userName, container.serverHost, container.serverPort, scope)
+            viewModel.loadPersistedData()
         }
     }
 
@@ -31,9 +41,7 @@ fun App(container: AppContainer) {
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { padding ->
             if (viewModel.userName == null) {
-                LoginScreen { username ->
-                    viewModel.connect(username, container.serverHost, container.serverPort, scope)
-                }
+                LoginScreen(loginViewModel)
             } else {
                 Conversations(
                     viewModel = viewModel,

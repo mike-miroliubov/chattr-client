@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(xargs ls -la)",
+      "mcp__ide__getDiagnostics",
+      "Bash(./gradlew :composeApp:compileKotlinJvm:*)"
+    ]
+  }
+}
